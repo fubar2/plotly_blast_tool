@@ -75,9 +75,6 @@ for scatter in fig.data:
     scatter['x'] = [str(x)[:MAXLEN] + '..' if len(str(x)) > MAXLEN else x for x in scatter['x']]
     scatter['y'] = [str(x)[:MAXLEN] + '..' if len(str(x)) > MAXLEN else x for x in scatter['y']]
 fig.write_html(args.htmlout)
-fig.show()
-
-
 
 #end raw]]></configfile>
   </configfiles>
@@ -125,7 +122,7 @@ The evalues WILL BE CONVERTED as -log10(evalue) so they are scaled in a way that
 
 
 
-The main reason to run this tool is to have an interactive hover text specified so it appears when hovering over each data point to supply useful information. 
+The main reason to run this tool is to have an interactive hover text specified so it appears when hovering over each data point to supply useful information.
 
 
 
@@ -151,7 +148,7 @@ So for example, xcol = "qaccver" for the blastn header example rather than xcol 
 
 Relies on Plotly python code released under the MIT licence: https://github.com/plotly/plotly.py/blob/master/LICENSE.txt
 
- 
+
 
 ------
 
