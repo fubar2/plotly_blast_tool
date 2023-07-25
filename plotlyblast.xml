@@ -1,0 +1,212 @@
+<tool name="plotlyblast" id="plotlyblast" version="3.0">
+  <!--Source in git at: https://github.com/fubar2/galaxy-->
+  <!--Created by toolfactory@galaxy.org at 25/07/2023 14:13:15 using the Galaxy Tool Factory.-->
+  <description>Plotly plot generator</description>
+  <requirements>
+    <requirement type="package">pandas</requirement>
+    <requirement type="package">plotly</requirement>
+  </requirements>
+  <stdio>
+    <exit_code range="1:" level="fatal"/>
+  </stdio>
+  <version_command><![CDATA[echo "3.0"]]></version_command>
+  <command><![CDATA[python
+$runme
+--input_tab
+$input_tab
+--htmlout
+$htmlout
+--xcol
+"$xcol"
+--ycol
+"$ycol"
+--colourcol
+"$colourcol"
+--hovercol
+"$hovercol"
+--title
+"$title"
+--header
+"$header"]]></command>
+  <configfiles>
+    <configfile name="runme"><![CDATA[#raw
+
+import argparse
+import sys
+import math
+import plotly.express as px
+import pandas as pd
+# Ross Lazarus July 2023
+# based on various plotly tutorials
+# Expects a blastn search result passed in as the first command line parameter.
+parser = argparse.ArgumentParser()
+a = parser.add_argument
+a('--input_tab',default='')
+a('--header',default='qaccver,saccver,piden,length,mismatch,gapopen,qstart,qend,sstart,send,evalue,bitscore,sallseqid,score,nident,positive,gaps,ppos,qframe,sframe,qseq,sseq,qlen,slen,salltitles')
+a('--htmlout',default="test_run.html")
+a('--xcol',default='gaps')
+a('--ycol',default='qseq')
+a('--colourcol',default='qaccver')
+a('--hovercol',default='qseq')
+a('--title',default='test blast plot of mismatch by bitscore coloured by qaccver ')
+args = parser.parse_args()
+df = pd.read_csv(args.input_tab, sep='\t')
+NCOLS = df.columns.size
+MAXLEN = 40 # tricky way to truncate long axis tickmarks
+defaultcols = ['col%d' % (x+1) for x in range(NCOLS)]
+if len(args.header.strip()) > 0:
+    newcols = args.header.split(',')
+    if len(newcols) == NCOLS:
+        df.columns = newcols
+    else:
+        sys.stderr.write('#### Supplied header %s has %d comma delimited header names - does not match the input tabular file %d columns - using col1,...coln' % (args.header, len(newcols), NCOLS))
+        df.columns = defaultcols
+else:
+    df.columns = defaultcols
+df['evalue'] = [-math.log(x) for x in df['evalue']] # convert so large values reflect statistical surprise
+if len(args.colourcol.strip()) == 0:
+    fig = px.scatter(df, x=args.xcol, y=args.ycol, hover_name=args.hovercol)
+else:
+    fig = px.scatter(df, x=args.xcol, y=args.ycol, color=args.colourcol, hover_name=args.hovercol)
+if args.title:
+    ftitle=dict(text=args.title, font=dict(size=50), automargin=True)
+    fig.update_layout(title=ftitle)
+for scatter in fig.data:
+    scatter['x'] = [str(x)[:MAXLEN] + '..' if len(str(x)) > MAXLEN else x for x in scatter['x']]
+    scatter['y'] = [str(x)[:MAXLEN] + '..' if len(str(x)) > MAXLEN else x for x in scatter['y']]
+fig.write_html(args.htmlout)
+fig.show()
+
+
+
+#end raw]]></configfile>
+  </configfiles>
+  <inputs>
+    <param name="input_tab" type="data" optional="false" label="Tabular input file to plot" help="" format="tabular" multiple="false"/>
+    <param name="xcol" type="text" value="mismatch" label="x axis for plat" help=""/>
+    <param name="ycol" type="text" value="bitscore" label="y axis for plot" help=""/>
+    <param name="colourcol" type="text" value="qaccver" label="column containing a groupable variable for colour. Default none." help="Adds a legend so choose wisely "/>
+    <param name="hovercol" type="text" value="qseq" label="columname for hover string" help=""/>
+    <param name="title" type="text" value="Test title default" label="Title for the plot" help=""/>
+    <param name="header" type="text" value="qaccver,saccver,piden,length,mismatch,gapopen,qstart,qend,sstart,send,evalue,bitscore,sallseqid,score,nident,positive,gaps,ppos,qframe,sframe,qseq,sseq,qlen,slen,salltitles" label="Use this comma delimited list of column header names for this tabular file__sq__s columns" help="Default for Galaxy blast outputs with 25 columns."/>
+  </inputs>
+  <outputs>
+    <data name="htmlout" format="html" label="htmlout" hidden="false"/>
+  </outputs>
+  <tests>
+    <test>
+      <output name="htmlout" value="htmlout_sample" compare="sim_size" delta="5000"/>
+      <param name="input_tab" value="input_tab_sample"/>
+      <param name="xcol" value="mismatch"/>
+      <param name="ycol" value="bitscore"/>
+      <param name="colourcol" value="qaccver"/>
+      <param name="hovercol" value="qseq"/>
+      <param name="title" value="Test title default"/>
+      <param name="header" value="qaccver,saccver,piden,length,mismatch,gapopen,qstart,qend,sstart,send,evalue,bitscore,sallseqid,score,nident,positive,gaps,ppos,qframe,sframe,qseq,sseq,qlen,slen,salltitles"/>
+    </test>
+  </tests>
+  <help><![CDATA[
+
+This is a specialised version of a generic tabular file plotter tool plotlytabular
+
+
+
+.. class:: warningmark
+
+
+
+Long strings in x and y tickmarks WILL BE TRUNCATED if they are too long - ".." is added to indicate truncation - otherwise some plots are squished.
+
+The evalues WILL BE CONVERTED as -log10(evalue) so they are scaled in a way that doesn't confuse plotly.express with the tiny values.
+
+
+
+----
+
+
+
+The main reason to run this tool is to have an interactive hover text specified so it appears when hovering over each data point to supply useful information. 
+
+
+
+Assumes you want a hover display for an interactive plot to be informative
+
+
+
+Column names are auto-generated as col1,...coln unless a comma separated list of column names is supplied as the header parameter.
+
+
+
+For example, using a Galaxy blastn output with 25 columns, the following comma delimited string supplied as the "header" parameter will match the names of each column.
+
+   qaccver,saccver,piden,length,mismatch,gapopen,qstart,qend,sstart,send,evalue,bitscore,sallseqid,score,nident,positive,gaps,ppos,qframe,sframe,qseq,sseq,qlen,slen,salltitles
+
+
+
+When a header is supplied, the xcol and other column names must match one of those supplied column names.
+
+So for example, xcol = "qaccver" for the blastn header example rather than xcol = "col1" when no header is supplied.
+
+
+
+Relies on Plotly python code released under the MIT licence: https://github.com/plotly/plotly.py/blob/master/LICENSE.txt
+
+ 
+
+------
+
+
+Script::
+
+    import argparse
+    import sys
+    import math
+    import plotly.express as px
+    import pandas as pd
+    # Ross Lazarus July 2023
+    # based on various plotly tutorials
+    # Expects a blastn search result passed in as the first command line parameter.
+    parser = argparse.ArgumentParser()
+    a = parser.add_argument
+    a('--input_tab',default='')
+    a('--header',default='qaccver,saccver,piden,length,mismatch,gapopen,qstart,qend,sstart,send,evalue,bitscore,sallseqid,score,nident,positive,gaps,ppos,qframe,sframe,qseq,sseq,qlen,slen,salltitles')
+    a('--htmlout',default="test_run.html")
+    a('--xcol',default='gaps')
+    a('--ycol',default='qseq')
+    a('--colourcol',default='qaccver')
+    a('--hovercol',default='qseq')
+    a('--title',default='test blast plot of mismatch by bitscore coloured by qaccver ')
+    args = parser.parse_args()
+    df = pd.read_csv(args.input_tab, sep='\t')
+    NCOLS = df.columns.size
+    MAXLEN = 40 # tricky way to truncate long axis tickmarks
+    defaultcols = ['col%d' % (x+1) for x in range(NCOLS)]
+    if len(args.header.strip()) > 0:
+        newcols = args.header.split(',')
+        if len(newcols) == NCOLS:
+            df.columns = newcols
+        else:
+            sys.stderr.write('#### Supplied header %s has %d comma delimited header names - does not match the input tabular file %d columns - using col1,...coln' % (args.header, len(newcols), NCOLS))
+            df.columns = defaultcols
+    else:
+        df.columns = defaultcols
+    df['evalue'] = [-math.log(x) for x in df['evalue']] # convert so large values reflect statistical surprise
+    if len(args.colourcol.strip()) == 0:
+        fig = px.scatter(df, x=args.xcol, y=args.ycol, hover_name=args.hovercol)
+    else:
+        fig = px.scatter(df, x=args.xcol, y=args.ycol, color=args.colourcol, hover_name=args.hovercol)
+    if args.title:
+        ftitle=dict(text=args.title, font=dict(size=50), automargin=True)
+        fig.update_layout(title=ftitle)
+    for scatter in fig.data:
+        scatter['x'] = [str(x)[:MAXLEN] + '..' if len(str(x)) > MAXLEN else x for x in scatter['x']]
+        scatter['y'] = [str(x)[:MAXLEN] + '..' if len(str(x)) > MAXLEN else x for x in scatter['y']]
+    fig.write_html(args.htmlout)
+    fig.show()
+
+]]></help>
+  <citations>
+    <citation type="doi">10.1093/bioinformatics/bts573</citation>
+  </citations>
+</tool>
+
