@@ -1,10 +1,10 @@
 <tool name="plotlyblast" id="plotlyblast" version="3.0">
   <!--Source in git at: https://github.com/fubar2/galaxy_tf_overlay-->
-  <!--Created by toolfactory@galaxy.org at 26/07/2023 15:45:12 using the Galaxy Tool Factory.-->
+  <!--Created by toolfactory@galaxy.org at 26/07/2023 17:31:09 using the Galaxy Tool Factory.-->
   <description>Plotly plot generator</description>
   <requirements>
-    <requirement type="package">pandas</requirement>
-    <requirement type="package">plotly</requirement>
+    <requirement type="package" version="1.5.3">pandas</requirement>
+    <requirement type="package" version="5.9.0">plotly</requirement>
   </requirements>
   <stdio>
     <exit_code range="1:" level="fatal"/>
@@ -44,11 +44,11 @@ a = parser.add_argument
 a('--input_tab',default='')
 a('--header',default='qaccver,saccver,piden,length,mismatch,gapopen,qstart,qend,sstart,send,evalue,bitscore,sallseqid,score,nident,positive,gaps,ppos,qframe,sframe,qseq,sseq,qlen,slen,salltitles')
 a('--htmlout',default="test_run.html")
-a('--xcol',default='gaps')
-a('--ycol',default='qseq')
-a('--colourcol',default='qaccver')
-a('--hovercol',default='qseq')
-a('--title',default='test blast plot of mismatch by bitscore coloured by qaccver ')
+a('--xcol',default='')
+a('--ycol',default='')
+a('--colourcol',default='')
+a('--hovercol',default='')
+a('--title',default='test blast plot')
 args = parser.parse_args()
 df = pd.read_csv(args.input_tab, sep='\t')
 NCOLS = df.columns.size
@@ -69,8 +69,9 @@ if len(args.colourcol.strip()) == 0:
 else:
     fig = px.scatter(df, x=args.xcol, y=args.ycol, color=args.colourcol, hover_name=args.hovercol)
 if args.title:
-    ftitle=dict(text=args.title, font=dict(size=40), automargin=True)
-    fig.update_layout(title=ftitle)
+    fig.update_layout(title=dict(text=args.title, font=dict(size=40)))
+
+
 for scatter in fig.data:
     scatter['x'] = [str(x)[:MAXLEN] + '..' if len(str(x)) > MAXLEN else x for x in scatter['x']]
     scatter['y'] = [str(x)[:MAXLEN] + '..' if len(str(x)) > MAXLEN else x for x in scatter['y']]
@@ -129,7 +130,7 @@ NOTE: Blast evalues WILL BE TRANSFORMED using -log10(evalue), so they are scaled
 
 
 
-The main reason to run this tool is to have an interactive hover text specified so it appears when hovering over each data point to supply useful information. 
+The main reason to run this tool is to have an interactive hover text specified so it appears when hovering over each data point to supply useful information.
 
 
 
@@ -163,7 +164,7 @@ Relies on Plotly python code released under the MIT licence: https://github.com/
 
     :width: 400
 
- 
+
 
 ------
 
@@ -183,11 +184,11 @@ Script::
     a('--input_tab',default='')
     a('--header',default='qaccver,saccver,piden,length,mismatch,gapopen,qstart,qend,sstart,send,evalue,bitscore,sallseqid,score,nident,positive,gaps,ppos,qframe,sframe,qseq,sseq,qlen,slen,salltitles')
     a('--htmlout',default="test_run.html")
-    a('--xcol',default='gaps')
-    a('--ycol',default='qseq')
-    a('--colourcol',default='qaccver')
-    a('--hovercol',default='qseq')
-    a('--title',default='test blast plot of mismatch by bitscore coloured by qaccver ')
+    a('--xcol',default='')
+    a('--ycol',default='')
+    a('--colourcol',default='')
+    a('--hovercol',default='')
+    a('--title',default='test blast plot')
     args = parser.parse_args()
     df = pd.read_csv(args.input_tab, sep='\t')
     NCOLS = df.columns.size
