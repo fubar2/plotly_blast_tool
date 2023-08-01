@@ -7,7 +7,7 @@
 #### Non interactive screen grab of the tool output
 ![Plotly tabular non-interactive screengrab](pbsample.png)
 
-Specialised version of the generalised (plotly_tabular_tool)[https://github.com/fubar2/plotly_tabular_tool], but designed
+Specialised version of the generalised [plotly_tabular_tool](https://github.com/fubar2/plotly_tabular_tool), but designed
 for 25 column Galaxy blastn search outputs.
 
 It uses the same code, but adds a default header and auto-transformation of the evalue column -log10(x) to make them more like the bitscore
