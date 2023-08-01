@@ -19,3 +19,7 @@ Note that all columns used for colour (legend) and the x/y axis tickmarks are tr
 *..* is added at the end to show truncation.
 
 
+## Tool made with the Galaxy ToolFactory: https://github.com/fubar2/galaxy_tf_overlay
+The current release includes this and a blast tailored version, and a java .jar wrapper in a history where they can be rerun and in a workflow
+where they can be regenerated if the input data sets are available.
+
