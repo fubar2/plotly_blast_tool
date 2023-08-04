@@ -1,10 +1,11 @@
 <tool name="plotlyblast" id="plotlyblast" version="3.0">
   <!--Source in git at: https://github.com/fubar2/galaxy_tf_overlay-->
-  <!--Created by toolfactory@galaxy.org at 01/08/2023 17:19:06 using the Galaxy Tool Factory.-->
-  <description>Plotly plot generator</description>
+  <!--Created by toolfactory@galaxy.org at 04/08/2023 10:36:02 using the Galaxy Tool Factory.-->
+  <description>Plotly plot generator specialised for 25 column Galaxy blast search result tabular files</description>
   <requirements>
     <requirement version="1.5.3" type="package">pandas</requirement>
     <requirement version="5.9.0" type="package">plotly</requirement>
+    <requirement version="0.2.1" type="package">python-kaleido</requirement>
   </requirements>
   <stdio>
     <exit_code range="1:" level="fatal"/>
@@ -27,11 +28,14 @@ $htmlout
 --title
 "$title"
 --header
-"$header"]]></command>
+"$header"
+--image_type
+"$outputimagetype"]]></command>
   <configfiles>
     <configfile name="runme"><![CDATA[#raw
 
 import argparse
+import shutil
 import sys
 import math
 import plotly.express as px
@@ -49,6 +53,7 @@ a('--ycol',default='')
 a('--colourcol',default='')
 a('--hovercol',default='')
 a('--title',default='test blast plot')
+a('--image_type',default='short_html')
 args = parser.parse_args()
 df = pd.read_csv(args.input_tab, sep='\t')
 NCOLS = df.columns.size
@@ -78,22 +83,47 @@ for scatter in fig.data:
         sl = str(scatter['legendgroup'])
         if len(sl) > MAXLEN:
             scatter['legendgroup'] = sl[:MAXLEN]
-fig.write_html(args.htmlout)
+if args.image_type == "short_html":
+    fig.write_html(args.htmlout, full_html=False, include_plotlyjs='cdn')
+elif args.image_type == "long_html":
+    fig.write_html(args.htmlout)
+elif args.image_type == "small_png":
+    ht = 768
+    wdth = 1024
+    fig.write_image('plotly.png', height=ht, width=wdth)
+    shutil.copyfile('plotly.png', args.htmlout)
+else:
+    ht = 1200
+    wdth = 1920
+    fig.write_image('plotly.png', height=ht, width=wdth)
+    shutil.copyfile('plotly.png', args.htmlout)
+
 
 
 #end raw]]></configfile>
   </configfiles>
   <inputs>
     <param name="input_tab" type="data" optional="false" label="Tabular input file to plot" help="" format="tabular" multiple="false"/>
-    <param name="xcol" type="text" value="qaccver" label="x axis for plat" help=""/>
+    <param name="xcol" type="text" value="qaccver" label="x axis for plot" help=""/>
     <param name="ycol" type="text" value="bitscore" label="y axis for plot" help=""/>
     <param name="colourcol" type="text" value="piden" label="column containing a groupable variable for colour. Default none." help="Adds a legend so choose wisely "/>
     <param name="hovercol" type="text" value="qseq" label="columname for hover string" help=""/>
     <param name="title" type="text" value="Qaccver by bitscore coloured by pident. Hover shows blast match." label="Title for the plot" help="Special characters will probably be escaped so do not use them"/>
     <param name="header" type="text" value="qaccver,saccver,piden,length,mismatch,gapopen,qstart,qend,sstart,send,evalue,bitscore,sallseqid,score,nident,positive,gaps,ppos,qframe,sframe,qseq,sseq,qlen,slen,salltitles" label="Use this comma delimited list of column header names for this tabular file. Default is None when col1...coln will be used" help="Default for Galaxy blast outputs with 25 columns. The column names supplied for xcol, ycol, hover and colour MUST match either the supplied list, or if none, col1...coln."/>
+    <param name="outputimagetype" type="select" label="Select the output format for this plot image" help="Small and large png are not interactive but best for many (__gt__10k) points. Stand-alone HTML includes 3MB of javascript. Short form HTML gets it the usual way so can be cut and paste into documents.">
+      <option value="short_html">Short HTML interactive - requires network connection to download 3MB javascript</option>
+      <option value="long_html">Long HTML for stand-alone viewing where network access to libraries is not available.</option>
+      <option value="large_png">Large (1920x1200) png image - not interactive so hover column ignored</option>
+      <option value="small_png">Small (1024x768) png image - not interactive so hover column ignored</option>
+    </param>
   </inputs>
   <outputs>
-    <data name="htmlout" format="html" label="htmlout" hidden="false"/>
+    <data name="htmlout" format="html" label="Plotlyblast $title on $input_tab.element_identifier" hidden="false">
+      <change_format>
+        <when input="outputimagetype" format="png" value="small_png"/>
+        <when input="outputimagetype" format="png" value="large_png"/>
+      </change_format>
+    </data>
   </outputs>
   <tests>
     <test>
@@ -105,11 +135,22 @@ fig.write_html(args.htmlout)
       <param name="hovercol" value="qseq"/>
       <param name="title" value="Qaccver by bitscore coloured by pident. Hover shows blast match."/>
       <param name="header" value="qaccver,saccver,piden,length,mismatch,gapopen,qstart,qend,sstart,send,evalue,bitscore,sallseqid,score,nident,positive,gaps,ppos,qframe,sframe,qseq,sseq,qlen,slen,salltitles"/>
+      <param name="outputimagetype" value="short_html"/>
     </test>
   </tests>
   <help><![CDATA[
 
 This is a specialised version of a generic tabular file plotter tool plotlytabular
+
+PNG image outputs are not interactive but best for very large numbers of data points. Hover column will be ignored.
+
+HTML interactive plots are best for a few thousand data points at most because
+
+the hover information becomes uncontrollable with very dense points.
+
+Using the shorter format HTML relies on internet access when viewed, and saves 3MB of javascript being embedded.
+
+The long format is useful if potentially viewed offline.
 
 
 
@@ -157,11 +198,7 @@ Relies on Plotly python code released under the MIT licence: https://github.com/
 
 
 
-.. image:: pbsample.png
 
-    :height: 400
-
-    :width: 400
 
  
 
@@ -171,6 +208,7 @@ Relies on Plotly python code released under the MIT licence: https://github.com/
 Script::
 
     import argparse
+    import shutil
     import sys
     import math
     import plotly.express as px
@@ -188,6 +226,7 @@ Script::
     a('--colourcol',default='')
     a('--hovercol',default='')
     a('--title',default='test blast plot')
+    a('--image_type',default='short_html')
     args = parser.parse_args()
     df = pd.read_csv(args.input_tab, sep='\t')
     NCOLS = df.columns.size
@@ -217,7 +256,20 @@ Script::
             sl = str(scatter['legendgroup'])
             if len(sl) > MAXLEN:
                 scatter['legendgroup'] = sl[:MAXLEN]
-    fig.write_html(args.htmlout)
+    if args.image_type == "short_html":
+        fig.write_html(args.htmlout, full_html=False, include_plotlyjs='cdn')
+    elif args.image_type == "long_html":
+        fig.write_html(args.htmlout)
+    elif args.image_type == "small_png":
+        ht = 768
+        wdth = 1024
+        fig.write_image('plotly.png', height=ht, width=wdth)
+        shutil.copyfile('plotly.png', args.htmlout)
+    else:
+        ht = 1200
+        wdth = 1920
+        fig.write_image('plotly.png', height=ht, width=wdth)
+        shutil.copyfile('plotly.png', args.htmlout)
 
 ]]></help>
   <citations>
